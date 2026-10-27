@@ -50,6 +50,17 @@
 
             <div class="form-group grid-2">
                 <div>
+                    <label for="doc_id" class="form-label">Documento de Identidad *</label>
+                    <input type="text" id="doc_id" name="doc_id" value="{{ old('doc_id', $user->doc_id ?? '') }}" class="form-control" maxlength="50" required>
+                </div>
+                <div>
+                    <label for="phone" class="form-label">Teléfono</label>
+                    <input type="tel" id="phone" name="phone" value="{{ old('phone', $user->phone ?? '') }}" class="form-control" maxlength="30">
+                </div>
+            </div>
+
+            <div class="form-group grid-2">
+                <div>
                     <label for="role" class="form-label">Rol del Sistema *</label>
                     <select name="role" id="role" class="form-control" required>
                         <option value="Seller" {{ old('role', $user->role ?? '') === 'Seller' ? 'selected' : '' }}>Vendedor</option>

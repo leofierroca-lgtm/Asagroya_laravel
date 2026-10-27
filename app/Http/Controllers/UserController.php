@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -11,6 +11,7 @@ class UserController extends Controller
     public function index()
     {
         $users = User::orderBy('name')->get();
+
         return view('users.index', compact('users'));
     }
 
@@ -23,10 +24,12 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|min:6|confirmed',
+            'doc_id' => 'required|string|max:50|unique:users,doc_id',
+            'phone' => 'nullable|string|max:30',
             'role' => 'required|in:Admin,Partner,Seller',
-            'status' => 'required|in:Active,Inactive'
+            'status' => 'required|in:Active,Inactive',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
@@ -44,9 +47,11 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
+            'doc_id' => 'required|string|max:50|unique:users,doc_id,'.$user->id,
+            'phone' => 'nullable|string|max:30',
             'role' => 'required|in:Admin,Partner,Seller',
-            'status' => 'required|in:Active,Inactive'
+            'status' => 'required|in:Active,Inactive',
         ]);
 
         if ($request->filled('password')) {
@@ -64,8 +69,9 @@ class UserController extends Controller
         if (auth()->id() === $user->id) {
             return redirect()->back()->with('error', 'No puedes eliminar tu propia cuenta.');
         }
-        
+
         $user->delete();
+
         return redirect()->route('users.index')->with('success', 'Usuario eliminado del sistema.');
     }
 }
