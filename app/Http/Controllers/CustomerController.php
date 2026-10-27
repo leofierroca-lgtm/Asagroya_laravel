@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Customer;
+use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
@@ -12,16 +12,17 @@ class CustomerController extends Controller
         $search = $request->get('search', '');
         $query = Customer::query();
 
-        if (!empty($search)) {
-            $query->where(function($q) use ($search) {
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('tax_id', 'LIKE', "%{$search}%")
-                  ->orWhere('phone', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%");
+                    ->orWhere('tax_id', 'LIKE', "%{$search}%")
+                    ->orWhere('phone', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
 
         $customers = $query->orderBy('name')->get();
+
         return view('customers.index', compact('customers', 'search'));
     }
 
@@ -33,14 +34,14 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'document_id' => 'required|unique:customers,tax_id',
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string'
+            'document_id' => 'required|string|max:50|unique:customers,tax_id',
+            'name' => 'required|string|max:100',
+            'email' => 'nullable|email|max:100',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
         ]);
 
-        $customer = new Customer();
+        $customer = new Customer;
         $customer->tax_id = $validated['document_id'];
         $customer->name = $validated['name'];
         $customer->email = $validated['email'] ?? null;
@@ -59,11 +60,11 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $validated = $request->validate([
-            'document_id' => 'required|unique:customers,tax_id,' . $customer->id,
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string'
+            'document_id' => 'required|string|max:50|unique:customers,tax_id,'.$customer->id,
+            'name' => 'required|string|max:100',
+            'email' => 'nullable|email|max:100',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
         ]);
 
         $customer->tax_id = $validated['document_id'];
@@ -80,6 +81,7 @@ class CustomerController extends Controller
     {
         try {
             $customer->delete();
+
             return redirect()->route('customers.index')->with('success', 'Cliente eliminado.');
         } catch (\Exception $e) {
             return redirect()->route('customers.index')->with('error', 'No se puede eliminar el cliente porque tiene ventas asociadas.');

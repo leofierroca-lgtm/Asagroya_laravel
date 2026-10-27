@@ -46,23 +46,23 @@
             <div class="form-group grid-2">
                 <div>
                     <label for="document_id" class="form-label">RUT / NIT / C.C. *</label>
-                    <input type="text" id="document_id" name="document_id" value="{{ old('document_id', $customer->document_id ?? '') }}" class="form-control" placeholder="Ej: 900.123.456-7" required>
+                    <input type="text" id="document_id" name="document_id" value="{{ old('document_id', $customer->document_id ?? '') }}" class="form-control" placeholder="Ej: 900.123.456-7" maxlength="50" required>
                     <span style="font-size:0.75rem; color:var(--text-muted);">Documento necesario para emitir factura legal.</span>
                 </div>
                 <div>
                     <label for="name" class="form-label">Razón Social / Nombre Completo *</label>
-                    <input type="text" id="name" name="name" value="{{ old('name', $customer->name ?? '') }}" class="form-control" placeholder="Ej: Supermercados La Despensa" required>
+                    <input type="text" id="name" name="name" value="{{ old('name', $customer->name ?? '') }}" class="form-control" placeholder="Ej: Supermercados La Despensa" maxlength="100" required>
                 </div>
             </div>
 
             <div class="form-group grid-2">
                 <div>
                     <label for="phone" class="form-label">Teléfono Celular / Fijo</label>
-                    <input type="tel" id="phone" name="phone" value="{{ old('phone', $customer->phone ?? '') }}" class="form-control" placeholder="Ej: 310 123 4567">
+                    <input type="tel" id="phone" name="phone" value="{{ old('phone', $customer->phone ?? '') }}" class="form-control" placeholder="Ej: 310 123 4567" maxlength="20">
                 </div>
                 <div>
                     <label for="email" class="form-label">Correo Electrónico Comercial</label>
-                    <input type="email" id="email" name="email" value="{{ old('email', $customer->email ?? '') }}" class="form-control" placeholder="contacto@empresa.com">
+                    <input type="email" id="email" name="email" value="{{ old('email', $customer->email ?? '') }}" class="form-control" placeholder="contacto@empresa.com" maxlength="100">
                     <span style="font-size:0.75rem; color:var(--text-muted);">Para envío de cotizaciones y facturas electrónicas.</span>
                 </div>
             </div>
