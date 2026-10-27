@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\StockIntake;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
@@ -15,14 +15,15 @@ class InventoryController extends Controller
         $search = $request->get('search', '');
         $query = Product::query();
 
-        if (!empty($search)) {
-            $query->where(function($q) use ($search) {
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('sku', 'LIKE', "%{$search}%");
+                    ->orWhere('sku', 'LIKE', "%{$search}%");
             });
         }
 
         $allProducts = $query->orderBy('name')->get();
+
         return view('inventory.check', compact('allProducts', 'search'));
     }
 
@@ -31,10 +32,10 @@ class InventoryController extends Controller
         $search = $request->get('search', '');
         $query = StockIntake::with(['product', 'creator']);
 
-        if (!empty($search)) {
-            $query->whereHas('product', function($q) use ($search) {
+        if (! empty($search)) {
+            $query->whereHas('product', function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('sku', 'LIKE', "%{$search}%");
+                    ->orWhere('sku', 'LIKE', "%{$search}%");
             });
         }
 
@@ -60,15 +61,19 @@ class InventoryController extends Controller
             $intake->created_by = Auth::id();
             $intake->save();
 
-            $product = Product::findOrFail($validated['product_id']);
+            $product = Product::whereKey($validated['product_id'])
+                ->lockForUpdate()
+                ->firstOrFail();
             $product->stock += $validated['quantity'];
             $product->save();
 
             DB::commit();
+
             return redirect()->route('inventory.intake')->with('success', 'Entrada de stock registrada y agregada al inventario del producto.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error al procesar la entrada de stock: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Error al procesar la entrada de stock: '.$e->getMessage());
         }
     }
 
@@ -78,6 +83,7 @@ class InventoryController extends Controller
         if ($intake) {
             return response()->json(['success' => true, 'data' => $intake]);
         }
+
         return response()->json(['success' => false, 'message' => 'Entrada no encontrada']);
     }
 
@@ -92,23 +98,31 @@ class InventoryController extends Controller
         try {
             DB::beginTransaction();
 
-            $intake = StockIntake::findOrFail($id);
-            $product = Product::findOrFail($intake->product_id);
+            $intake = StockIntake::whereKey($id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $product = Product::whereKey($intake->product_id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            // Revert old quantity
-            $product->stock -= $intake->quantity;
-            
-            // Apply new quantity
-            $product->stock += $validated['quantity'];
+            $stockDifference = $validated['quantity'] - $intake->quantity;
+
+            if ($stockDifference < 0 && $product->stock < abs($stockDifference)) {
+                throw new \RuntimeException('No se puede reducir la entrada por debajo del stock disponible.');
+            }
+
+            $product->stock += $stockDifference;
             $product->save();
 
             $intake->update($validated);
 
             DB::commit();
+
             return redirect()->route('inventory.intake')->with('success', 'Entrada de stock modificada y el inventario del producto ha sido re-calculado.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error al corregir la entrada de stock: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Error al corregir la entrada de stock: '.$e->getMessage());
         }
     }
 }
