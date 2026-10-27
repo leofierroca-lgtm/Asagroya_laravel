@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Customer;
+use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\Product;
-use App\Models\Customer;
-use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class SaleController extends Controller
 {
@@ -16,6 +17,7 @@ class SaleController extends Controller
     {
         $products = Product::where('stock', '>', 0)->orderBy('name')->get();
         $customers = Customer::orderBy('name')->get();
+
         return view('sales.create', compact('products', 'customers'));
     }
 
@@ -27,15 +29,14 @@ class SaleController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0.01'
         ]);
 
         try {
             DB::beginTransaction();
 
             $totalAmount = 0;
-            
-            $sale = new Sale();
+
+            $sale = new Sale;
             $sale->customer_id = $validated['customer_id'];
             $sale->seller_id = Auth::id();
             $sale->sale_date = now();
@@ -44,8 +45,10 @@ class SaleController extends Controller
             $sale->save();
 
             foreach ($validated['items'] as $itemData) {
-                $product = Product::findOrFail($itemData['product_id']);
-                
+                $product = Product::whereKey($itemData['product_id'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
                 if ($product->stock < $itemData['quantity']) {
                     throw new \Exception("Stock insuficiente para el producto: {$product->name}");
                 }
@@ -53,14 +56,15 @@ class SaleController extends Controller
                 $product->stock -= $itemData['quantity'];
                 $product->save();
 
-                $subtotal = $itemData['quantity'] * $itemData['unit_price'];
+                $unitPrice = $product->sell_price;
+                $subtotal = $itemData['quantity'] * $unitPrice;
                 $totalAmount += $subtotal;
 
-                $saleItem = new SaleItem();
+                $saleItem = new SaleItem;
                 $saleItem->sale_id = $sale->id;
                 $saleItem->product_id = $product->id;
                 $saleItem->quantity = $itemData['quantity'];
-                $saleItem->unit_price = $itemData['unit_price'];
+                $saleItem->unit_price = $unitPrice;
                 $saleItem->subtotal = $subtotal;
                 $saleItem->save();
             }
@@ -69,16 +73,19 @@ class SaleController extends Controller
             $sale->save();
 
             DB::commit();
-            return redirect()->route('sales.history')->with('success', 'Venta registrada exitosamente. Factura #' . $sale->id);
+
+            return redirect()->route('sales.history')->with('success', 'Venta registrada exitosamente. Factura #'.$sale->id);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error al procesar la venta: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Error al procesar la venta: '.$e->getMessage());
         }
     }
 
     public function history()
     {
         $sales = Sale::with(['customer', 'user', 'items.product'])->orderBy('sale_date', 'desc')->get();
+
         return view('sales.history', compact('sales'));
     }
 
@@ -88,20 +95,21 @@ class SaleController extends Controller
         if ($sale) {
             return response()->json(['success' => true, 'data' => $sale]);
         }
+
         return response()->json(['success' => false, 'message' => 'Venta no encontrada']);
     }
 
     public function generateInvoice($id)
     {
         $sale = Sale::with(['customer', 'user', 'items.product'])->findOrFail($id);
-        
+
         $itemCount = count($sale->items);
         $paperHeight = max(500, 370 + ($itemCount * 36));
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('sales.invoice', compact('sale'));
+
+        $pdf = Pdf::loadView('sales.invoice', compact('sale'));
         $pdf->setPaper([0, 0, 226.77, $paperHeight], 'portrait');
-        
-        return $pdf->download('factura_ASAGROYA_' . str_pad($sale->id, 6, '0', STR_PAD_LEFT) . '.pdf');
+
+        return $pdf->download('factura_ASAGROYA_'.str_pad($sale->id, 6, '0', STR_PAD_LEFT).'.pdf');
     }
 
     public function sendInvoiceEmail($id)

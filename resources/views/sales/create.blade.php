@@ -79,8 +79,8 @@
                             <input type="number" name="items[0][quantity]" class="form-control pos-qty-input" value="1" min="1" required oninput="updateRowSubtotal(this)">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size:0.75rem;">Precio Unit. ($) *</label>
-                            <input type="number" name="items[0][unit_price]" class="form-control pos-price-input" min="0.01" step="0.01" required oninput="updateRowSubtotal(this)">
+                            <label class="form-label" style="font-size:0.75rem;">Precio Unit. de Catálogo ($)</label>
+                            <input type="number" name="items[0][unit_price]" class="form-control pos-price-input" min="0.01" step="0.01" readonly oninput="updateRowSubtotal(this)">
                         </div>
                         <div>
                             <button type="button" class="btn btn-secondary" onclick="removeCartRow(this)" style="padding:0.6rem; color:var(--danger);" title="Quitar línea" disabled>
@@ -157,7 +157,7 @@ function addCartRow() {
             <input type="number" name="items[${rowCount}][quantity]" class="form-control pos-qty-input" value="1" min="1" required oninput="updateRowSubtotal(this)">
         </div>
         <div>
-            <input type="number" name="items[${rowCount}][unit_price]" class="form-control pos-price-input" min="0.01" step="0.01" required oninput="updateRowSubtotal(this)">
+            <input type="number" name="items[${rowCount}][unit_price]" class="form-control pos-price-input" min="0.01" step="0.01" readonly oninput="updateRowSubtotal(this)">
         </div>
         <div>
             <button type="button" class="btn btn-secondary" onclick="removeCartRow(this)" style="padding:0.6rem; color:var(--danger);" title="Quitar línea">
